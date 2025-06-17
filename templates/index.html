@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ElevenLabs Conversations</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>ElevenLabs Conversations</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Agent ID</th>
+                    <th>Conversation ID</th>
+                    <th>Start Time</th>
+                    <th>Duration (s)</th>
+                    <th>Agent Name</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for conversation in conversations %}
+                <tr>
+                    <td>{{ conversation.agent_id }}</td>
+                    <td><a href="/conversation/{{ conversation.conversation_id }}">{{ conversation.conversation_id }}</a></td>
+                    <td>{{ conversation.start_time_unix_secs }}</td>
+                    <td>{{ conversation.call_duration_secs }}</td>
+                    <td>{{ conversation.agent_name }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

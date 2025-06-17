@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Conversation Details</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Conversation Details</h1>
+        <p><strong>Agent ID:</strong> {{ details.agent_id }}</p>
+        <p><strong>Conversation ID:</strong> {{ details.conversation_id }}</p>
+         <p><strong>Phone Number:</strong> {% if details.metadata and details.metadata.phone_call %} {{ details.metadata.phone_call.external_number }} {% else %} N/A {% endif %}</p>
+        <p><strong>Status:</strong> {{ details.status }}</p>
+        <h2>Transcript</h2>
+        {% for item in details.transcript %}
+            <p><strong>{{ item.role }}:</strong> {{ item.message }}</p>
+        {% endfor %}
+        <a href="/">Back to Conversations</a>
+    </div>
+</body>
+</html>

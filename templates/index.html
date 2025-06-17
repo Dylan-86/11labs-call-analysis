@@ -100,12 +100,38 @@
                 border-left: none;
             }
         }
+
+        .conversation-list-container {
+            max-height: 80vh; /* 80% of viewport height */
+            overflow-y: auto; /* Enable vertical scrolling */
+            position: relative; /* For proper scrolling context */
+            border: 1px solid #dee2e6; /* Optional border */
+            border-radius: 4px; /* Optional rounded corners */
+        }
+
+        /* Optional: Style the scrollbar */
+        .conversation-list-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .conversation-list-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .conversation-list-container::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        .conversation-list-container::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+
     </style>
 </head>
 <body>
     <div class="container">
         <div class="conversation-list">
             <h1>ElevenLabs Conversations</h1>
+            <div class="conversation-list-container">
             <table class="table table-striped" id="conversationsTable">
                 <thead>
                     <tr>
@@ -126,6 +152,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            </div>
         </div>
         <div class="conversation-details">
             <h1>Conversation Details</h1>

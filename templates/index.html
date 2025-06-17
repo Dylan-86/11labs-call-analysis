@@ -53,6 +53,21 @@
             vertical-align: bottom;
             border-bottom: 2px solid #dee2e6;
             cursor: pointer;
+            position: relative;
+        }
+
+        .table thead th:hover {
+            background-color: #f1f1f1;
+        }
+
+        .table thead th.sort-asc::after {
+            content: " ↑";
+            font-size: 12px;
+        }
+
+        .table thead th.sort-desc::after {
+            content: " ↓";
+            font-size: 12px;
         }
 
         .table tbody + tbody {
@@ -91,12 +106,12 @@
     <div class="container">
         <div class="conversation-list">
             <h1>ElevenLabs Conversations</h1>
-            <table class="table table-striped">
+            <table class="table table-striped" id="conversationsTable">
                 <thead>
                     <tr>
-                        <th>Date/Time</th>
-                        <th>Duration (s)</th>
-                        <th>Conversation ID</th>
+                        <th data-sort="start_time_unix_secs">Date/Time</th>
+                        <th data-sort="call_duration_secs">Duration (s)</th>
+                        <th data-sort="conversation_id">Conversation ID</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -118,36 +133,91 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sortable/1.14.0/sortable.min.js"></script>
     <script>
-        const conversationLinks = document.querySelectorAll('.conversation-list a');
-
-        conversationLinks.forEach(link => {
-            link.addEventListener('click', function(event) {
-                event.preventDefault();
-                const conversationId = this.dataset.conversationId;
-                fetch(`/api/conversation/${conversationId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const detailsContent = document.getElementById('details-content');
-                        detailsContent.innerHTML = `
-                            <p><strong>Agent ID:</strong> ${data.agent_id}</p>
-                            <p><strong>Conversation ID:</strong> ${data.conversation_id}</p>
-                            <p><strong>Phone Number:</strong> ${data.metadata && data.metadata.phone_call ? data.metadata.phone_call.external_number : 'N/A'}</p>
-                            <p><strong>Status:</strong> ${data.status}</p>
-                            <h2>Transcript</h2>
-                            ${data.transcript.map(item => `<p><strong>${item.role}:</strong> ${item.message}</p>`).join('')}
-                        `;
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('conversationsTable');
+            const headers = table.querySelectorAll('th[data-sort]');
+            const tbody = table.querySelector('tbody');
+            let rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Track current sort state
+            let currentSort = {
+                key: null,
+                direction: 1 // 1 for ascending, -1 for descending
+            };
+            
+            headers.forEach(header => {
+                header.addEventListener('click', function() {
+                    const sortKey = this.dataset.sort;
+                    
+                    // If clicking the same column, reverse direction
+                    if (currentSort.key === sortKey) {
+                        currentSort.direction *= -1;
+                    } 
+                    // If clicking a different column, default to ascending
+                    else {
+                        currentSort.key = sortKey;
+                        currentSort.direction = 1;
+                    }
+                    
+                    // Remove all sort classes first
+                    headers.forEach(h => {
+                        h.classList.remove('sort-asc', 'sort-desc');
                     });
+                    
+                    // Add appropriate class to current header
+                    if (currentSort.direction === 1) {
+                        this.classList.add('sort-asc');
+                    } else {
+                        this.classList.add('sort-desc');
+                    }
+                    
+                    // Sort rows
+                    rows.sort((a, b) => {
+                        const aValue = a.cells[header.cellIndex].textContent;
+                        const bValue = b.cells[header.cellIndex].textContent;
+                        
+                        // Handle numeric sorting for duration
+                        if (sortKey === 'call_duration_secs') {
+                            return (parseFloat(aValue) - parseFloat(bValue)) * currentSort.direction;
+                        }
+                        // Handle date sorting if needed (you might need to convert timestamps)
+                        else if (sortKey === 'start_time_unix_secs') {
+                            return (new Date(aValue) - new Date(bValue)) * currentSort.direction;
+                        }
+                        // Default string comparison
+                        else {
+                            return aValue.localeCompare(bValue) * currentSort.direction;
+                        }
+                    });
+                    
+                    // Rebuild the table
+                    tbody.innerHTML = '';
+                    rows.forEach(row => tbody.appendChild(row));
+                });
             });
-        });
 
-        // Initialize Sortable
-        const table = document.querySelector('.table');
-        new Sortable(table, {
-            animation: 150,
-            sort: true,
-            handle: 'th'
+            // Conversation details click handler
+            const conversationLinks = document.querySelectorAll('.conversation-list a');
+            conversationLinks.forEach(link => {
+                link.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const conversationId = this.dataset.conversationId;
+                    fetch(`/api/conversation/${conversationId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const detailsContent = document.getElementById('details-content');
+                            detailsContent.innerHTML = `
+                                <p><strong>Agent ID:</strong> ${data.agent_id}</p>
+                                <p><strong>Conversation ID:</strong> ${data.conversation_id}</p>
+                                <p><strong>Phone Number:</strong> ${data.metadata && data.metadata.phone_call ? data.metadata.phone_call.external_number : 'N/A'}</p>
+                                <p><strong>Status:</strong> ${data.status}</p>
+                                <h2>Transcript</h2>
+                                ${data.transcript.map(item => `<p><strong>${item.role}:</strong> ${item.message}</p>`).join('')}
+                            `;
+                        });
+                });
+            });
         });
     </script>
 </body>

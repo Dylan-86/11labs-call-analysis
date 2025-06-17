@@ -109,7 +109,7 @@
             <table class="table table-striped" id="conversationsTable">
                 <thead>
                     <tr>
-                        <th data-sort="start_time_unix_secs">Date/Time</th>
+                        <th data-sort="start_time_unix_secs">Date/Time (UTC)</th>
                         <th data-sort="call_duration_secs">Duration (s)</th>
                         <th data-sort="conversation_id">Conversation ID</th>
                     </tr>
@@ -117,7 +117,9 @@
                 <tbody>
                     {% for conversation in conversations %}
                     <tr>
-                        <td>{{ conversation.start_time_unix_secs }}</td>
+                        <td data-unix="{{ conversation.start_time_unix_secs }}">
+                            <!-- This will be filled by JavaScript -->
+                        </td>
                         <td>{{ conversation.call_duration_secs }}</td>
                         <td><a href="#" data-conversation-id="{{ conversation.conversation_id }}">{{ conversation.conversation_id }}</a></td>
                     </tr>
@@ -135,69 +137,78 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // First, convert all Unix timestamps to human-readable UTC format
+            const timeCells = document.querySelectorAll('td[data-unix]');
+            timeCells.forEach(cell => {
+                const unixTime = parseInt(cell.dataset.unix);
+                if (!isNaN(unixTime)) {
+                    const date = new Date(unixTime * 1000); // Convert to milliseconds
+                    cell.textContent = date.toUTCString();
+                    
+                    // Store ISO string for sorting
+                    cell.dataset.sortValue = date.toISOString();
+                }
+            });
+
             const table = document.getElementById('conversationsTable');
             const headers = table.querySelectorAll('th[data-sort]');
             const tbody = table.querySelector('tbody');
             let rows = Array.from(tbody.querySelectorAll('tr'));
             
-            // Track current sort state
             let currentSort = {
                 key: null,
-                direction: 1 // 1 for ascending, -1 for descending
+                direction: 1
             };
             
             headers.forEach(header => {
                 header.addEventListener('click', function() {
                     const sortKey = this.dataset.sort;
                     
-                    // If clicking the same column, reverse direction
                     if (currentSort.key === sortKey) {
                         currentSort.direction *= -1;
-                    } 
-                    // If clicking a different column, default to ascending
-                    else {
+                    } else {
                         currentSort.key = sortKey;
                         currentSort.direction = 1;
                     }
                     
-                    // Remove all sort classes first
                     headers.forEach(h => {
                         h.classList.remove('sort-asc', 'sort-desc');
                     });
                     
-                    // Add appropriate class to current header
                     if (currentSort.direction === 1) {
                         this.classList.add('sort-asc');
                     } else {
                         this.classList.add('sort-desc');
                     }
                     
-                    // Sort rows
                     rows.sort((a, b) => {
-                        const aValue = a.cells[header.cellIndex].textContent;
-                        const bValue = b.cells[header.cellIndex].textContent;
+                        const aCell = a.cells[header.cellIndex];
+                        const bCell = b.cells[header.cellIndex];
                         
-                        // Handle numeric sorting for duration
                         if (sortKey === 'call_duration_secs') {
-                            return (parseFloat(aValue) - parseFloat(bValue)) * currentSort.direction;
+                            const aValue = parseFloat(aCell.textContent);
+                            const bValue = parseFloat(bCell.textContent);
+                            return (aValue - bValue) * currentSort.direction;
                         }
-                        // Handle date sorting if needed (you might need to convert timestamps)
                         else if (sortKey === 'start_time_unix_secs') {
-                            return (new Date(aValue) - new Date(bValue)) * currentSort.direction;
+                            // Use the ISO string we stored earlier for accurate sorting
+                            const aValue = aCell.dataset.sortValue;
+                            const bValue = bCell.dataset.sortValue;
+                            return aValue.localeCompare(bValue) * currentSort.direction;
                         }
-                        // Default string comparison
                         else {
+                            const aValue = aCell.textContent;
+                            const bValue = bCell.textContent;
                             return aValue.localeCompare(bValue) * currentSort.direction;
                         }
                     });
                     
-                    // Rebuild the table
                     tbody.innerHTML = '';
                     rows.forEach(row => tbody.appendChild(row));
                 });
             });
 
-            // Conversation details click handler
+            // Conversation details click handler (keep your existing one)
             const conversationLinks = document.querySelectorAll('.conversation-list a');
             conversationLinks.forEach(link => {
                 link.addEventListener('click', function(event) {

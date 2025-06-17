@@ -1,34 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ElevenLabs Conversations</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            max-width: 90%;
+        }
+
+        .conversation-list {
+            width: 50%;
+            padding: 10px;
+        }
+
+        .conversation-details {
+            width: 50%;
+            padding: 10px;
+            border-left: 1px solid #dee2e6;
+        }
+
+        .table {
+            width: 100%;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+
+        .table th,
+        .table td {
+            padding: 0.75rem;
+            vertical-align: top;
+            border-top: 1px solid #dee2e6;
+            text-align: left;
+        }
+
+        .table thead th {
+            vertical-align: bottom;
+            border-bottom: 2px solid #dee2e6;
+            cursor: pointer;
+        }
+
+        .table tbody + tbody {
+            border-top: 2px solid #dee2e6;
+        }
+
+        .table-striped tbody tr:nth-of-type(odd) {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        #details-content {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        #details-content p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .conversation-list,
+            .conversation-details {
+                width: 100%;
+                border-left: none;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <h1>ElevenLabs Conversations</h1>
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Agent ID</th>
-                    <th>Conversation ID</th>
-                    <th>Start Time</th>
-                    <th>Duration (s)</th>
-                    <th>Agent Name</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for conversation in conversations %}
-                <tr>
-                    <td>{{ conversation.agent_id }}</td>
-                    <td><a href="/conversation/{{ conversation.conversation_id }}">{{ conversation.conversation_id }}</a></td>
-                    <td>{{ conversation.start_time_unix_secs }}</td>
-                    <td>{{ conversation.call_duration_secs }}</td>
-                    <td>{{ conversation.agent_name }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="conversation-list">
+            <h1>ElevenLabs Conversations</h1>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date/Time</th>
+                        <th>Duration (s)</th>
+                        <th>Conversation ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for conversation in conversations %}
+                    <tr>
+                        <td>{{ conversation.start_time_unix_secs }}</td>
+                        <td>{{ conversation.call_duration_secs }}</td>
+                        <td><a href="#" data-conversation-id="{{ conversation.conversation_id }}">{{ conversation.conversation_id }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="conversation-details">
+            <h1>Conversation Details</h1>
+            <div id="details-content">
+                <p>Select a conversation to view details.</p>
+            </div>
+        </div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sortable/1.14.0/sortable.min.js"></script>
+    <script>
+        const conversationLinks = document.querySelectorAll('.conversation-list a');
+
+        conversationLinks.forEach(link => {
+            link.addEventListener('click', function(event) {
+                event.preventDefault();
+                const conversationId = this.dataset.conversationId;
+                fetch(`/api/conversation/${conversationId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const detailsContent = document.getElementById('details-content');
+                        detailsContent.innerHTML = `
+                            <p><strong>Agent ID:</strong> ${data.agent_id}</p>
+                            <p><strong>Conversation ID:</strong> ${data.conversation_id}</p>
+                            <p><strong>Phone Number:</strong> ${data.metadata && data.metadata.phone_call ? data.metadata.phone_call.external_number : 'N/A'}</p>
+                            <p><strong>Status:</strong> ${data.status}</p>
+                            <h2>Transcript</h2>
+                            ${data.transcript.map(item => `<p><strong>${item.role}:</strong> ${item.message}</p>`).join('')}
+                        `;
+                    });
+            });
+        });
+
+        // Initialize Sortable
+        const table = document.querySelector('.table');
+        new Sortable(table, {
+            animation: 150,
+            sort: true,
+            handle: 'th'
+        });
+    </script>
 </body>
 </html>
